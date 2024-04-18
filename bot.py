@@ -189,22 +189,52 @@ async def broadcast_handler(c: Client, m: Message):
     )
 
 
+# Define the list of channel IDs or usernames you want the user to subscribe to
+CHANNELS_TO_SUBSCRIBE = ["@Film_Nest"]  # Add more channels as needed
+
 @mergeApp.on_message(filters.command(["start"]) & filters.private)
 async def start_handler(c: Client, m: Message):
     user = UserSettings(m.from_user.id, m.from_user.first_name)
 
+    # Initialize a flag to check if the user is subscribed to all required channels
+    is_subscribed_to_all = True
+
+    # Check if the user is a member of each specified channel
+    for channel in CHANNELS_TO_SUBSCRIBE:
+        try:
+            chat_member = await c.get_chat_member(channel, m.from_user.id)
+            if chat_member.status not in ("member", "administrator", "creator"):
+                is_subscribed_to_all = False
+                break
+        except Exception:
+            is_subscribed_to_all = False
+            break
+
+    # If the user is not subscribed to all channels, prompt them to subscribe
+    if not is_subscribed_to_all:
+        await m.reply_text(
+            text=f"Hi **{m.from_user.first_name}**\n\nPlease subscribe to our required channels to use this bot:",
+            quote=True,
+        )
+        for channel in CHANNELS_TO_SUBSCRIBE:
+            await m.reply_text(f"Subscribe to {channel}")
+        return
+
+    # Continue with the existing functionality if the user is subscribed to all channels
     if m.from_user.id != int(Config.OWNER):
         if user.allowed is False:
             res = await m.reply_text(
-                text=f"Hi **{m.from_user.first_name}**\n\n 🛡️ Unfortunately you can't use me\n\n**Contact: 🈲 @{Config.OWNER_USERNAME}** ",
+                text=f"Hi **{m.from_user.first_name}**\n\n 🛡️ Unfortunately you can't use me\n\n**Contact: 🈲 @{Config.OWNER_USERNAME}**",
                 quote=True,
             )
             return
     else:
         user.allowed = True
         user.set()
+
+    # Continue with the existing functionality
     res = await m.reply_text(
-        text=f"Hi **{m.from_user.first_name}**\n\n ⚡ I am a file/video merger bot\n\n😎 I can merge Telegram files!, And upload it to telegram\n\n**Owner: 🈲 @{Config.OWNER_USERNAME}** ",
+        text=f"Hi **{m.from_user.first_name}**\n\n ⚡ I am a file/video merger bot\n\n😎 I can merge Telegram files! And upload it to Telegram\n\n**Owner: 🈲 @{Config.OWNER_USERNAME}** ",
         quote=True,
     )
     del user
